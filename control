@@ -1,0 +1,9 @@
+Package: org.thebigboss.nearbynews
+Name: NearbyNews
+Depends: mobilesubstrate
+Version: 1.0
+Architecture: iphoneos-arm
+Description: Siri Suggestions, Nearby, and News in every Spotlight!
+Maintainer: twodayslate
+Author: twodayslate
+Section: Tweaks
