@@ -3,6 +3,8 @@
 @interface SPUISearchViewController
 - (BOOL)_hasResults;
 + (id)sharedInstance;
+@property (assign, nonatomic) BOOL isActuallyPullDownSpotlight;
+@property (assign, nonatomic) int actualSearchMode;
 - (BOOL)_isPullDownSpotlight;
 - (BOOL)isZKWSearchMode;
 - (BOOL)_hasNoQuery;
@@ -32,9 +34,6 @@
 - (void)setCancelButtonHidden:(BOOL)arg1 animated:(BOOL)arg2;
 @end
 
-static int actualSearchMode = 0;
-static BOOL isActuallyPullDown = NO;
-
 // This works too but there are some annoying bugs that are too hard to fix correctly so I don't do this.
 //static BOOL canDeclare = NO;
 //%hook SPUISearchModel 
@@ -48,11 +47,12 @@ static BOOL isActuallyPullDown = NO;
 //%end
 
 %hook SPUISearchViewController
+%property (assign, nonatomic) BOOL isActuallyPullDownSpotlight;
 - (BOOL)_isPullDownSpotlight {
 	%log;
-	isActuallyPullDown = %orig;
+	self.isActuallyPullDownSpotlight = %orig;
 
-	HBLogDebug(@"orig = %d", isActuallyPullDown);
+	HBLogDebug(@"orig = %d", self.isActuallyPullDownSpotlight );
 	return NO;
 }
 - (BOOL)_allowSwipeToDismiss {
@@ -77,14 +77,16 @@ static BOOL isActuallyPullDown = NO;
 	%log;
 	%orig;
 }
+
+%property (assign, nonatomic) int actualSearchMode;
 - (void)setSearchMode:(int)arg1 {
 	%log;
 	// Search Modes
 	// 0 = left
 	// 1 = top
 	// 2 = search
-	actualSearchMode = arg1;
-	%orig( (actualSearchMode == 1) ? 0 : actualSearchMode );
+	self.actualSearchMode = arg1;
+	%orig( (self.actualSearchMode == 1) ? 0 : self.actualSearchMode );
 }
 - (BOOL)_showKeyboardOnPresentation {
 	%log;
@@ -94,7 +96,7 @@ static BOOL isActuallyPullDown = NO;
 - (void)_didFinishPresenting {
 	%log;
 	%orig;
-	if(isActuallyPullDown) {
+	if(self.isActuallyPullDownSpotlight ) {
 		SPUISearchHeader *searchHeader = MSHookIvar<SPUISearchHeader *>(self, "_searchHeader");
 		[searchHeader setCancelButtonHidden:NO animated:YES];
 	}
@@ -103,7 +105,7 @@ static BOOL isActuallyPullDown = NO;
 - (void)cancelButtonPressed {
 	%log;
 	%orig;
-	if(isActuallyPullDown) {
+	if(self.isActuallyPullDownSpotlight) {
 		[self dismiss];
 	}
 }
@@ -112,11 +114,12 @@ static BOOL isActuallyPullDown = NO;
 %hook SPUISearchHeader
 - (void)setCancelButtonHidden:(BOOL)arg1 animated:(BOOL)arg2 {
 	%log;
-	if(!isActuallyPullDown) {
+	SPUISearchViewController *vc = [%c(SPUISearchViewController) sharedInstance];
+	if(!vc.isActuallyPullDownSpotlight) {
 		return %orig;
 	}
 
-	if(isActuallyPullDown && !arg1) {
+	if(vc.isActuallyPullDownSpotlight && !arg1) {
 		return %orig;
 	}
 }
